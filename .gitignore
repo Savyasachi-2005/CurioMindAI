@@ -1,0 +1,26 @@
+# Global ignores
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Env files
+.env
+.env.*
+!*.example
+frontend/.env
+backend/.env
+
+# Node / Vite
+node_modules/
+dist/
+.vite/
+npm-debug.log*
+yarn-error.log*
+pnpm-lock.yaml
+
+# Coverage / build caches
+coverage/
+.turbo/
+.parcel-cache/
+.cache/

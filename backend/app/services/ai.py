@@ -207,3 +207,28 @@ def generate_related_with_gemini(question: str, age: int, length: str, target_la
             return uniq[:5]
     except Exception:
         return None
+
+
+def heuristic_related(question: str) -> List[str]:
+    """Lightweight fallback: derive 4–5 generic but useful follow-ups based on the question.
+
+    Returns English suggestions. Caller may translate if needed.
+    """
+    base = (question or '').strip()
+    if base.endswith(('.', '?', '!')):
+        base = base[:-1]
+    if not base:
+        base = 'this topic'
+    templates = [
+        "Can you give a simple example of {x}?",
+        "Why is {x} important?",
+        "How does {x} work in real life?",
+        "What are the main parts or steps of {x}?",
+        "Where do we use {x} in everyday life?",
+    ]
+    arr: List[str] = []
+    for t in templates:
+        q = t.format(x=base).strip()
+        if q and q not in arr:
+            arr.append(q)
+    return arr[:5]

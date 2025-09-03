@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 from ..models.schemas import ExplainRequest, ExplainResponse
-from ..services.ai import generate_with_gemini, translate_with_gemini, generate_related_with_gemini
+from ..services.ai import generate_with_gemini, translate_with_gemini, generate_related_with_gemini, heuristic_related
 
 router = APIRouter()
 
@@ -15,6 +15,15 @@ def explain(req: ExplainRequest):
             if t:
                 answer_text = t
         related = generate_related_with_gemini(req.question, req.age, req.length, req.language) or []
+        if not related:
+            # Heuristic fallback + optional translate joined, then split
+            basic = heuristic_related(req.question)
+            if req.language != 'en' and basic:
+                joined = '\n'.join(basic)
+                t = translate_with_gemini(joined, req.language)
+                if t:
+                    basic = [s.strip() for s in t.split('\n') if s.strip()]
+            related = basic
         return ExplainResponse(answer=answer_text, related=related[:5] if related else [])
 
     # Fallback simple templated answer (if AI for answer failed)
@@ -43,6 +52,14 @@ def explain(req: ExplainRequest):
         t = translate_with_gemini(explanation, req.language)
         if t:
             explanation = t
-    # Try AI-based related; if it fails, return empty list (no manual heuristics)
+    # Try AI-based related; if it fails, use heuristic fallback (translated if needed)
     related = generate_related_with_gemini(req.question, req.age, req.length, req.language) or []
-    return ExplainResponse(answer=explanation, related=related)
+    if not related:
+        basic = heuristic_related(req.question)
+        if req.language != 'en' and basic:
+            joined = '\n'.join(basic)
+            t = translate_with_gemini(joined, req.language)
+            if t:
+                basic = [s.strip() for s in t.split('\n') if s.strip()]
+        related = basic
+    return ExplainResponse(answer=explanation, related=related[:5] if related else [])

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import Navbar from '../shared/Navbar'
 import Footer from '../shared/Footer'
+import heroVideo from '../components/vid/cm_vid.mp4'
 
 interface Explanation {
   id: string
@@ -9,6 +10,7 @@ interface Explanation {
   age: number
   length: 'Short' | 'Medium' | 'Detailed'
   text: string
+  createdAt?: number
 }
 
 const lengths: Array<Explanation['length']> = ['Short', 'Medium', 'Detailed']
@@ -26,6 +28,7 @@ const languages = [
 ]
 
 export default function LandingPage() {
+  const uid = () => (typeof crypto !== 'undefined' && (crypto as any).randomUUID ? (crypto as any).randomUUID() : `id_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`)
   const [question, setQuestion] = useState('')
   const [age, setAge] = useState<number>(10)
   const [length, setLength] = useState<Explanation['length']>('Medium')
@@ -35,12 +38,46 @@ export default function LandingPage() {
   const [notes, setNotes] = useState<Explanation[]>([])
   const [relatedQuestions, setRelatedQuestions] = useState<string[]>([])
   const [typed, setTyped] = useState<string>('')
+  const [query, setQuery] = useState('')
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({})
   const controllerRef = useRef<AbortController | null>(null)
   const askRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
     return () => controllerRef.current?.abort()
   }, [])
+
+  
+
+  // Load notes from localStorage on mount
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('curiomindai.notes.v1')
+      if (raw) {
+        const parsed: Explanation[] = JSON.parse(raw)
+        if (Array.isArray(parsed)) {
+          // Ensure every note has an id and createdAt
+          const cleaned = parsed.map((n) => ({
+            ...n,
+            id: n.id || uid(),
+            createdAt: n.createdAt || Date.now(),
+          }))
+          setNotes(cleaned)
+        }
+      }
+    } catch {
+      // ignore
+    }
+  }, [])
+
+  // Persist notes to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem('curiomindai.notes.v1', JSON.stringify(notes))
+    } catch {
+      // ignore
+    }
+  }, [notes])
 
   // Related questions are provided by backend per response
   // Typing animation for answer text
@@ -84,11 +121,12 @@ export default function LandingPage() {
       const data = await res.json()
       const answerText = String(data?.answer ?? '')
       const item: Explanation = {
-        id: crypto.randomUUID(),
+  id: uid(),
         question: q,
         age,
         length,
-        text: answerText,
+  text: answerText,
+  createdAt: Date.now(),
       }
       setOutput(item)
       const rel = Array.isArray(data?.related) ? data.related.slice(0, 5) : []
@@ -96,11 +134,12 @@ export default function LandingPage() {
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Failed to fetch explanation.'
       setOutput({
-        id: crypto.randomUUID(),
+  id: uid(),
         question: q,
         age,
         length,
-        text: `Error: ${msg}`,
+  text: `Error: ${msg}`,
+  createdAt: Date.now(),
       })
     } finally {
       setLoading(false)
@@ -113,8 +152,41 @@ export default function LandingPage() {
   }
 
   function addToNotes() {
-    if (output) setNotes((prev) => [output, ...prev])
+  if (!output) return
+  const item: Explanation = { ...output, id: output.id || uid(), createdAt: output.createdAt ?? Date.now() }
+    setNotes((prev) => [item, ...prev])
   }
+
+  function deleteNote(id: string) {
+    setNotes((prev) => prev.filter((n) => n.id !== id))
+  }
+
+  function clearNotes() {
+    if (!notes.length) return
+    const ok = confirm('Clear all saved notes? This cannot be undone.')
+    if (!ok) return
+    setNotes([])
+  }
+
+  function toggleExpand(id: string) {
+    setExpanded((e) => ({ ...e, [id]: !e[id] }))
+  }
+
+  async function copyNote(n: Explanation) {
+    try {
+      await navigator.clipboard.writeText(`Q: ${n.question}\n\n${n.text}`)
+    } catch {
+      // ignore
+    }
+  }
+
+  const filteredNotes = useMemo(() => {
+    const q = query.trim().toLowerCase()
+    if (!q) return notes
+    return notes.filter((n) =>
+      n.question.toLowerCase().includes(q) || n.text.toLowerCase().includes(q)
+    )
+  }, [notes, query])
 
   async function exportPdf() {
     try {
@@ -197,7 +269,7 @@ export default function LandingPage() {
   // const titleLetters = useMemo(() => 'CurioMindAI'.split(''), [])
 
   return (
-    <div className="min-h-screen flex flex-col text-white bg-gradient-to-br from-indigo-900 via-violet-800 to-sky-500 dark:from-slate-950 dark:via-slate-950 dark:to-slate-900">
+    <div className="min-h-screen flex flex-col text-slate-900 dark:text-white">
       <Navbar />
   {/* Header with brand removed to avoid duplication with Navbar */}
 
@@ -213,7 +285,7 @@ export default function LandingPage() {
             <h1 className="font-display text-3xl sm:text-5xl md:text-6xl leading-tight mb-4 text-center md:text-left">
               Learn anything, explained for your age.
             </h1>
-            <p className="text-white/85 text-base sm:text-lg mb-6 max-w-prose mx-auto md:mx-0 text-center md:text-left">
+            <p className="text-slate-700 dark:text-white/85 text-base sm:text-lg mb-6 max-w-prose mx-auto md:mx-0 text-center md:text-left">
               CurioMindAI turns complex topics into simple, friendly explanations and suggests smart follow-up questions to keep your curiosity going.
             </p>
             <div className="flex gap-3 flex-col sm:flex-row justify-center md:justify-start">
@@ -222,23 +294,37 @@ export default function LandingPage() {
             </div>
           </motion.div>
           <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
+            initial={{ opacity: 0, scale: 0.98 }}
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6, delay: 0.1 }}
-            className="relative h-56 sm:h-64 md:h-72"
+            className="relative"
           >
-            <div className="absolute inset-0 rounded-3xl bg-white/10 border border-white/10 backdrop-blur-md" />
-            <motion.div
-              className="absolute -inset-4 rounded-[32px]"
-              animate={{
-                background: [
-                  'radial-gradient(600px 200px at 10% 20%, rgba(255,255,255,.25), rgba(255,255,255,0))',
-                  'radial-gradient(600px 200px at 90% 80%, rgba(255,255,255,.25), rgba(255,255,255,0))',
-                ],
-              }}
-              transition={{ duration: 4, repeat: Infinity, repeatType: 'reverse' }}
-            />
+            <div className="relative overflow-hidden rounded-3xl shadow-xl">
+              {/* Soft animated glow behind the media */}
+              <motion.div
+                className="pointer-events-none absolute -inset-6 rounded-[40px] z-0"
+                animate={{
+                  background: [
+                    'radial-gradient(600px 220px at 15% 25%, rgba(0,0,0,.06), rgba(0,0,0,0))',
+                    'radial-gradient(600px 220px at 85% 75%, rgba(0,0,0,.06), rgba(0,0,0,0))',
+                  ],
+                }}
+                transition={{ duration: 5, repeat: Infinity, repeatType: 'reverse' }}
+              />
+              {/* Media container (height adapts to content) */}
+              <div className="relative z-10">
+                <video
+                  className="w-full h-auto object-contain max-h-80 md:max-h-96 bg-black/5"
+                  src={heroVideo}
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                  preload="metadata"
+                />
+              </div>
+            </div>
           </motion.div>
         </div>
       </section>
@@ -259,9 +345,9 @@ export default function LandingPage() {
               transition={{ duration: 0.5, delay: i * 0.05 }}
               className="card p-5 hover:bg-white/15 transition"
             >
-              <div className="h-10 w-10 rounded-xl bg-white/15 flex items-center justify-center text-xl mb-3">{f.icon}</div>
+              <div className="h-10 w-10 rounded-xl bg-slate-900/5 border border-slate-200 dark:bg-white/15 dark:border-white/10 flex items-center justify-center text-xl mb-3">{f.icon}</div>
               <h3 className="text-xl font-semibold mb-1">{f.title}</h3>
-              <p className="text-white/80">{f.desc}</p>
+              <p className="text-slate-600 dark:text-white/80">{f.desc}</p>
             </motion.div>
           ))}
         </div>
@@ -280,7 +366,7 @@ export default function LandingPage() {
 
             <div className="grid sm:grid-cols-4 gap-4">
               <div>
-                <label className="block text-sm text-white/80 mb-1">Age</label>
+                <label className="block text-sm text-slate-700 dark:text-white/80 mb-1">Age</label>
                 <input
                   type="range"
                   min={5}
@@ -290,15 +376,15 @@ export default function LandingPage() {
                   onChange={(e) => setAge(parseInt(e.target.value, 10))}
                   className="range"
                 />
-                <div className="mt-1 flex justify-between text-xs text-white/70">
+                <div className="mt-1 flex justify-between text-xs text-slate-600 dark:text-white/70">
                   <span>5</span>
-                  <span className="text-white">Age: {age}</span>
+                  <span className="text-slate-900 dark:text-white">Age: {age}</span>
                   <span>18</span>
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm text-white/80 mb-1">Length</label>
+                <label className="block text-sm text-slate-700 dark:text-white/80 mb-1">Length</label>
                 <select
                   className="select"
                   value={length}
@@ -311,7 +397,7 @@ export default function LandingPage() {
               </div>
 
               <div>
-                <label className="block text-sm text-white/80 mb-1">Language</label>
+                <label className="block text-sm text-slate-700 dark:text-white/80 mb-1">Language</label>
                 <select
                   className="select"
                   value={language}
@@ -335,13 +421,13 @@ export default function LandingPage() {
             <h3 className="text-lg font-semibold mb-2">Explanation</h3>
             <div className="card p-4 min-h-[120px]">
               {loading ? (
-                <div className="flex items-center gap-3 text-white/80">
+                <div className="flex items-center gap-3 text-slate-700 dark:text-white/80">
                   <div className="spinner" />
                   <span>Thinking…</span>
                 </div>
               ) : output ? (
                 <div className="space-y-4">
-                  <p className="whitespace-pre-wrap leading-relaxed">{typed || output.text}</p>
+                  <p className="whitespace-pre-wrap leading-relaxed break-anywhere">{typed || output.text}</p>
                   <button
                     className="btn btn-secondary"
                     onClick={async () => {
@@ -362,12 +448,12 @@ export default function LandingPage() {
 
                   {relatedQuestions.length > 0 && (
                     <div>
-                      <p className="text-white/80 mb-2">You may also like to ask about…</p>
+                      <p className="text-slate-700 dark:text-white/80 mb-2">You may also like to ask about…</p>
           <div className="flex flex-wrap md:flex-wrap gap-2 overflow-x-auto md:overflow-visible whitespace-nowrap md:whitespace-normal -mx-1 px-1">
                         {relatedQuestions.map((s: string) => (
                           <button
                             key={s}
-            className="px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/15 text-sm transition shrink-0"
+            className="px-3 py-1.5 rounded-full text-sm transition shrink-0 bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-800 dark:bg-white/10 dark:hover:bg-white/20 dark:border-white/15 dark:text-white"
                             onClick={() => {
                               setQuestion(s)
                               onSubmit(undefined, s)
@@ -381,30 +467,57 @@ export default function LandingPage() {
                   )}
                 </div>
               ) : (
-                <p className="text-white/60">Your explanation will appear here.</p>
+                <p className="text-slate-500 dark:text-white/60">Your explanation will appear here.</p>
               )}
             </div>
           </div>
         </section>
 
         <aside className="md:col-span-2 card p-6">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-xl font-semibold">Notes</h2>
-            <div className="flex gap-2">
-              <button className="btn btn-secondary" onClick={exportPdf} disabled={!notes.length}>Export as PDF</button>
-              <button className="btn btn-secondary" onClick={exportWord} disabled={!notes.length}>Export to Word</button>
+          <div className="mb-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div>
+              <h2 className="text-xl font-semibold">Notes</h2>
+              <p className="text-xs text-white/70">Saved: {notes.length}</p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search notes..."
+                className="input h-10 w-full sm:w-56 flex-1 min-w-0"
+              />
+              <button className="btn btn-secondary" onClick={exportPdf} disabled={!notes.length}>PDF</button>
+              <button className="btn btn-secondary" onClick={exportWord} disabled={!notes.length}>Word</button>
+              <button className="btn btn-secondary" onClick={clearNotes} disabled={!notes.length}>Clear</button>
             </div>
           </div>
           {notes.length === 0 ? (
-            <p className="text-white/60">No notes yet. Add an explanation to save it.</p>
+            <p className="text-slate-500 dark:text-white/60">No notes yet. Add an explanation to save it.</p>
+          ) : filteredNotes.length === 0 ? (
+            <p className="text-slate-500 dark:text-white/60">No notes match your search.</p>
           ) : (
             <ul className="space-y-3 max-h-[60vh] overflow-auto pr-2">
-              {notes.map((n) => (
-                <li key={n.id} className="card p-3">
-                  <p className="text-sm text-white/80 mb-1">Q: {n.question}</p>
-                  <p className="whitespace-pre-wrap text-white leading-relaxed">{n.text}</p>
-                </li>
-              ))}
+              {filteredNotes.map((n) => {
+                const isOpen = !!expanded[n.id]
+                const text = isOpen ? n.text : (n.text.length > 240 ? n.text.slice(0, 240) + '…' : n.text)
+                const when = n.createdAt ? new Date(n.createdAt).toLocaleString() : ''
+                return (
+                  <li key={n.id} className="card p-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="text-sm text-slate-800 dark:text-white/90 truncate">Q: {n.question}</p>
+                        {when && <p className="text-xs text-slate-500 dark:text-white/60">Saved: {when}</p>}
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <button title="Copy" onClick={() => copyNote(n)} className="px-2 py-1 rounded-md bg-white/10 hover:bg-white/20 text-sm">📋</button>
+                        <button title={isOpen ? 'Collapse' : 'Expand'} onClick={() => toggleExpand(n.id)} className="px-2 py-1 rounded-md bg-white/10 hover:bg-white/20 text-sm">{isOpen ? '▴' : '▾'}</button>
+                        <button title="Delete" onClick={() => deleteNote(n.id)} className="px-2 py-1 rounded-md bg-white/10 hover:bg-white/20 text-sm">🗑️</button>
+                      </div>
+                    </div>
+                    <p className="whitespace-pre-wrap text-white leading-relaxed mt-2 break-anywhere">{text}</p>
+                  </li>
+                )
+              })}
             </ul>
           )}
         </aside>

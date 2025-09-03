@@ -8,32 +8,56 @@ html, body, #root {
 }
 
 body {
-  @apply bg-gradient-to-br from-indigo-900 via-violet-800 to-sky-500 text-white;
+  /* Classy light theme with subtle gradient; dark keeps moody gradient */
+  @apply bg-gradient-to-br from-slate-50 via-white to-slate-100 text-slate-800 dark:text-white dark:from-slate-950 dark:via-slate-950 dark:to-slate-900;
   font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, 'Apple Color Emoji', 'Segoe UI Emoji';
 }
 
 .card {
-  @apply bg-white/10 backdrop-blur-md rounded-2xl shadow-xl border border-white/10;
+  /* Light: true card surface; Dark: frosted glass */
+  @apply rounded-2xl shadow-xl border bg-white border-slate-200 dark:bg-white/10 dark:border-white/10 dark:backdrop-blur-md;
 }
 
 .btn {
-  @apply inline-flex items-center justify-center rounded-xl px-4 py-2 font-medium transition-colors;
+  @apply inline-flex items-center justify-center rounded-xl px-4 py-2 font-medium transition-colors border border-transparent;
 }
 .btn-primary {
-  @apply bg-cyan-400 text-slate-900 hover:bg-cyan-300;
+  /* Light: indigo button; Dark: cyan pop */
+  @apply bg-indigo-600 text-white hover:bg-indigo-500 dark:bg-cyan-400 dark:text-slate-900 dark:hover:bg-cyan-300;
 }
 .btn-secondary {
-  @apply bg-white/10 text-white hover:bg-white/20;
+  /* Light: subtle neutral; Dark: glassy */
+  @apply bg-slate-900/5 text-slate-800 hover:bg-slate-900/10 border-slate-200 dark:bg-white/10 dark:text-white dark:hover:bg-white/20 dark:border-white/15;
 }
 
 .input, .select {
-  @apply w-full rounded-xl bg-white/10 border border-white/20 px-4 py-2 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-cyan-300/60;
+  /* Light: crisp inputs; Dark: glassy */
+  @apply w-full rounded-xl bg-white border border-slate-300 px-4 py-2 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-300/60 dark:bg-white/10 dark:border-white/20 dark:text-white dark:placeholder-white/60 dark:focus:ring-cyan-300/60;
 }
 
 .range {
-  @apply w-full accent-cyan-300;
+  @apply w-full accent-indigo-600 dark:accent-cyan-300;
 }
 
 .spinner {
   @apply animate-spin h-5 w-5 border-2 border-white/40 border-t-white rounded-full;
+}
+
+/* Small smartphone tweaks */
+@media (max-width: 420px) {
+  .card {
+    border-radius: 1rem;
+  }
+  .btn {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+  .input, .select {
+    font-size: 0.95rem;
+  }
+  /* Prevent horizontal overflow of long words in answers */
+  .break-anywhere {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
 }

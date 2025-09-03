@@ -4,6 +4,10 @@ import Navbar from '../shared/Navbar'
 import Footer from '../shared/Footer'
 import heroVideo from '../components/vid/cm_vid.mp4'
 
+// API base: set VITE_API_URL in production (e.g., https://your-render-backend.onrender.com)
+// Leave unset in dev to use Vite proxy
+const API_BASE: string = (import.meta as any).env?.VITE_API_URL || ''
+
 interface Explanation {
   id: string
   question: string
@@ -111,7 +115,7 @@ export default function LandingPage() {
   setRelatedQuestions([])
 
   try {
-      const res = await fetch('/explain', {
+  const res = await fetch(`${API_BASE}/explain`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ question: q, age, length, language }),
@@ -190,7 +194,7 @@ export default function LandingPage() {
 
   async function exportPdf() {
     try {
-      const res = await fetch('/export?format=pdf')
+      const res = await fetch(`${API_BASE}/export?format=pdf`)
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const blob = await res.blob()
       const url = URL.createObjectURL(blob)
@@ -210,7 +214,7 @@ export default function LandingPage() {
     if (!notes.length) return
     // Try backend DOCX first
     try {
-      const res = await fetch('/export?format=docx')
+      const res = await fetch(`${API_BASE}/export?format=docx`)
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const blob = await res.blob()
       const url = URL.createObjectURL(blob)
@@ -433,7 +437,7 @@ export default function LandingPage() {
                     onClick={async () => {
                       addToNotes()
                       try {
-                        await fetch('/notes/add', {
+                        await fetch(`${API_BASE}/notes/add`, {
                           method: 'POST',
                           headers: { 'Content-Type': 'application/json' },
                           body: JSON.stringify({ question: output.question, explanation: output.text })

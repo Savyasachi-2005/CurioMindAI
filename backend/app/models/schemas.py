@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import List, Literal
+from typing import List, Literal, Optional
 
 LanguageCode = Literal['en','hi','kn','ta','te','ml','bn','gu','mr','ur']
 
@@ -13,6 +13,12 @@ class ExplainRequest(BaseModel):
 class ExplainResponse(BaseModel):
     answer: str
     related: List[str]
+
+class ChatRequest(BaseModel):
+    query: str = Field(..., min_length=1)
+    age: Optional[int] = Field(10, ge=5, le=18)
+    length: Optional[Literal['Short', 'Medium', 'Detailed']] = 'Medium'
+    language: Optional[LanguageCode] = 'en'
 
 class NoteAddRequest(BaseModel):
     question: str

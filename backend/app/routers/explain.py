@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from ..models.schemas import ExplainRequest, ExplainResponse
+from ..models.schemas import ExplainRequest, ExplainResponse, ChatRequest
 from ..services.ai import generate_with_gemini, translate_with_gemini, generate_related_with_gemini, heuristic_related
 
 router = APIRouter()
@@ -63,3 +63,14 @@ def explain(req: ExplainRequest):
                 basic = [s.strip() for s in t.split('\n') if s.strip()]
         related = basic
     return ExplainResponse(answer=explanation, related=related[:5] if related else [])
+
+@router.post("/chat", response_model=ExplainResponse)
+def chat(req: ChatRequest):
+    # Map ChatRequest to ExplainRequest with defaults
+    mapped = ExplainRequest(
+        question=req.query,
+        age=req.age or 10,
+        length=(req.length or 'Medium'),
+        language=(req.language or 'en'),
+    )
+    return explain(mapped)

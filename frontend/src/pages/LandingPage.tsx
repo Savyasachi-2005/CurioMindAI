@@ -45,7 +45,7 @@ export default function LandingPage() {
   const [query, setQuery] = useState('')
   const [expanded, setExpanded] = useState<Record<string, boolean>>({})
   const controllerRef = useRef<AbortController | null>(null)
-  const askRef = useRef<HTMLDivElement | null>(null)
+  
 
   useEffect(() => {
     return () => controllerRef.current?.abort()
@@ -115,7 +115,7 @@ export default function LandingPage() {
   setRelatedQuestions([])
 
   try {
-  const res = await fetch(`${API_BASE}/explain`, {
+      const res = await fetch(`${API_BASE}/explain`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ question: q, age, length, language }),
@@ -125,12 +125,12 @@ export default function LandingPage() {
       const data = await res.json()
       const answerText = String(data?.answer ?? '')
       const item: Explanation = {
-  id: uid(),
+        id: uid(),
         question: q,
         age,
         length,
-  text: answerText,
-  createdAt: Date.now(),
+        text: answerText,
+        createdAt: Date.now(),
       }
       setOutput(item)
       const rel = Array.isArray(data?.related) ? data.related.slice(0, 5) : []
@@ -138,12 +138,12 @@ export default function LandingPage() {
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Failed to fetch explanation.'
       setOutput({
-  id: uid(),
+        id: uid(),
         question: q,
         age,
         length,
-  text: `Error: ${msg}`,
-  createdAt: Date.now(),
+        text: `Error: ${msg}`,
+        createdAt: Date.now(),
       })
     } finally {
       setLoading(false)
@@ -357,8 +357,8 @@ export default function LandingPage() {
         </div>
       </section>
 
-  <main id="ask" ref={askRef} className="px-4 sm:px-8 pb-12 max-w-6xl mx-auto grid md:grid-cols-5 gap-4 sm:gap-6">
-        <section className="md:col-span-3 card p-6">
+  <main id="ask" ref={askRef} className="px-4 sm:px-8 pb-12 max-w-6xl mx-auto grid md:grid-cols-5 gap-4 sm:gap-6 min-w-0">
+        <section className="md:col-span-3 card p-6 min-w-0">
           <h2 className="text-xl font-semibold mb-4">Ask anything</h2>
           <form onSubmit={onSubmit} className="space-y-4">
             <input
@@ -423,7 +423,7 @@ export default function LandingPage() {
 
           <div className="mt-6">
             <h3 className="text-lg font-semibold mb-2">Explanation</h3>
-            <div className="card p-4 min-h-[120px]">
+            <div className="card p-4 min-h-[120px] overflow-x-hidden">
               {loading ? (
                 <div className="flex items-center gap-3 text-slate-700 dark:text-white/80">
                   <div className="spinner" />
@@ -453,7 +453,7 @@ export default function LandingPage() {
                   {relatedQuestions.length > 0 && (
                     <div>
                       <p className="text-slate-700 dark:text-white/80 mb-2">You may also like to ask about…</p>
-          <div className="flex flex-wrap md:flex-wrap gap-2 overflow-x-auto md:overflow-visible whitespace-nowrap md:whitespace-normal -mx-1 px-1">
+                      <div className="flex flex-wrap gap-2 whitespace-normal">
                         {relatedQuestions.map((s: string) => (
                           <button
                             key={s}

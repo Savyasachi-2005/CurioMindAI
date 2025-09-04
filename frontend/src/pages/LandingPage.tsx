@@ -357,7 +357,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-  <main id="ask" ref={askRef} className="px-4 sm:px-8 pb-12 max-w-6xl mx-auto grid md:grid-cols-5 gap-4 sm:gap-6 min-w-0">
+  <main id="ask" className="px-4 sm:px-8 pb-12 max-w-6xl mx-auto grid md:grid-cols-5 gap-4 sm:gap-6 min-w-0">
         <section className="md:col-span-3 card p-6 min-w-0">
           <h2 className="text-xl font-semibold mb-4">Ask anything</h2>
           <form onSubmit={onSubmit} className="space-y-4">

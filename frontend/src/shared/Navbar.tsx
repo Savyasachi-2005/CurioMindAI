@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import logo from '../components/pics/logo_fin.png'
 
 export default function Navbar() {
   const [dark, setDark] = useState(() => {
@@ -23,7 +24,7 @@ export default function Navbar() {
       <div className="max-w-6xl mx-auto px-4 sm:px-8 py-4">
         <div className="flex items-center justify-between">
           <Link to="/home" className="flex items-center gap-2 min-w-0">
-            <div className="h-9 w-9 rounded-xl bg-white/20 flex items-center justify-center text-white font-bold">✨</div>
+            <img src={logo} alt="CurioMindAI" className="h-9 w-9 rounded-xl object-cover" />
             <span className="font-display text-xl tracking-tight truncate">CurioMindAI</span>
           </Link>
           {/* Desktop actions */}

@@ -45,6 +45,7 @@ export default function LandingPage() {
   const [query, setQuery] = useState('')
   const [expanded, setExpanded] = useState<Record<string, boolean>>({})
   const controllerRef = useRef<AbortController | null>(null)
+  const suggestionsRef = useRef<HTMLDivElement | null>(null)
   
 
   useEffect(() => {
@@ -98,6 +99,13 @@ export default function LandingPage() {
     }, speed)
     return () => clearInterval(timer)
   }, [output?.text])
+
+  // When related suggestions update, ensure the list scrolls back to top
+  useEffect(() => {
+    if (suggestionsRef.current) {
+      suggestionsRef.current.scrollTop = 0
+    }
+  }, [relatedQuestions])
 
   const canSubmit = question.trim().length > 0 && !loading
 
@@ -453,11 +461,14 @@ export default function LandingPage() {
                   {relatedQuestions.length > 0 && (
                     <div>
                       <p className="text-slate-700 dark:text-white/80 mb-2">You may also like to ask about…</p>
-                      <div className="flex flex-wrap gap-2 whitespace-normal">
+                      <div
+                        ref={suggestionsRef}
+                        className="flex flex-wrap gap-2 whitespace-normal w-full min-w-0 max-h-40 overflow-y-auto pr-1"
+                      >
                         {relatedQuestions.map((s: string) => (
                           <button
                             key={s}
-            className="px-3 py-1.5 rounded-full text-sm transition shrink-0 bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-800 dark:bg-white/10 dark:hover:bg-white/20 dark:border-white/15 dark:text-white"
+                            className="px-3 py-1.5 rounded-full text-sm transition min-w-0 max-w-full whitespace-normal break-words text-left bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-800 dark:bg-white/10 dark:hover:bg-white/20 dark:border-white/15 dark:text-white"
                             onClick={() => {
                               setQuestion(s)
                               onSubmit(undefined, s)
@@ -517,27 +528,7 @@ export default function LandingPage() {
                         <button title={isOpen ? 'Collapse' : 'Expand'} onClick={() => toggleExpand(n.id)} className="px-2 py-1 rounded-md bg-white/10 hover:bg-white/20 text-sm">{isOpen ? '▴' : '▾'}</button>
                         <button title="Delete" onClick={() => deleteNote(n.id)} className="px-2 py-1 rounded-md bg-white/10 hover:bg-white/20 text-sm">🗑️</button>
                       </div>
-                    // ...existing code...
-                                      {relatedQuestions.length > 0 && (
-                                        <div>
-                                          <p className="text-slate-700 dark:text-white/80 mb-2">You may also like to ask about…</p>
-                                          <div className="flex flex-wrap gap-2 whitespace-normal w-full">
-                                            {relatedQuestions.map((s: string) => (
-                                              <button
-                                                key={s}
-                                                className="px-3 py-1.5 rounded-full text-sm transition min-w-0 max-w-full whitespace-normal break-words text-left bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-800 dark:bg-white/10 dark:hover:bg-white/20 dark:border-white/15 dark:text-white"
-                                                onClick={() => {
-                                                  setQuestion(s)
-                                                  onSubmit(undefined, s)
-                                                }}
-                                              >
-                                                {s}
-                                              </button>
-                                            ))}
-                                          </div>
-                                        </div>
-                                      )}
-                    // ...existing code...                    </div>
+                    </div>
                     <p className="whitespace-pre-wrap text-white leading-relaxed mt-2 break-anywhere">{text}</p>
                   </li>
                 )
